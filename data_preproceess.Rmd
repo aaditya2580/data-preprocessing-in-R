@@ -1,0 +1,152 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(skimr)
+library(recipes)
+```
+```{r}
+starwars
+View(starwars)
+```
+
+
+
+```{r}
+skim(starwars)
+
+```
+
+
+data preprocessing using tidyverse and R samples
+```{r}
+data<-starwars %>% 
+  select(height,mass,gender)
+data
+
+```
+```{r}
+library(rsample)
+```
+
+#feature engineering
+```{r}
+
+
+data_split<-initial_split(data)
+data_train<-training(data_split)
+data_test<-testing(data_split)
+```
+
+#training _data
+```{r}
+x<-data_train %>% 
+  mutate(BMI=mass/(height*height))
+```
+
+
+
+#missing_value
+```{r}
+skim(x)
+any(is.na(x))
+```
+```{r}
+colSums(is.na(x))
+```
+```{r}
+Feature<-x %>% 
+  drop_na(height,gender) %>% 
+  mutate(mass=ifelse(is.na(mass),mean(mass,na.rm=TRUE),mass)) %>% mutate(BMI=ifelse(is.na(BMI),mean(BMI,na.rm=TRUE),BMI))
+```
+```{r}
+skim(Feature)
+```
+
+
+
+#encoding categorical data
+```{r}
+iris %>% 
+  mutate(Species=as.integer(Species))
+```
+```{r}
+iris  %>% mutate(Species_versicolor=ifelse(Species=="versicolor",1,0), 
+             Species_virginica=ifelse(Species=="virginica",1,0)) %>% select(-Species)
+```
+
+
+```{r}
+encoded<-Feature %>% 
+  mutate(gender_masculine=ifelse(gender=="masculine",1, 0)) %>% select(-gender)
+encoded
+
+```
+
+
+
+
+```{r}
+normalize<-function(feature){
+  (feature-mean(feature))/sd(feature)
+}
+
+```
+
+```{r}
+nor<-normalize <-encoded %>% 
+  mutate_all(normalize)
+```
+
+complete priprosesing pipeline
+```{r}
+data_train_p<-data_train %>% 
+  mutate(BMI=mass/(height*height)) %>% 
+    drop_na(height,gender) %>% 
+  mutate(mass=ifelse(is.na(mass),mean(mass,na.rm=TRUE),mass)) %>% mutate(BMI=ifelse(is.na(BMI),mean(BMI,na.rm=TRUE),BMI)) %>% 
+   mutate(gender_masculine=ifelse(gender=="masculine",1, 0)) %>% select(-gender) %>%  mutate_all(normalize)
+```
+
+```{r}
+waldo::compare(data_train_p,nor)
+```
+
+
+
+
+
+#data preprocessing using recipes package
+
+```{r}
+library(recipes)
+```
+
+
+```{r}
+recip<-data_train %>% recipe() %>% 
+  step_mutate(BMI=mass/(height*height)) %>% 
+  step_naomit(height,gender) %>% 
+  step_impute_mean(mass,BMI) %>% 
+  step_dummy(gender) %>% 
+  step_normalize(everything()) %>% prep()
+recip
+```
+
+```{r}
+d<-juice(recip)
+d
+```
+
+
+
+
+```{r}
+waldo::compare(d,nor)
+```
+
+
