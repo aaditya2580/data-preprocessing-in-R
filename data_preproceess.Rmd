@@ -99,7 +99,7 @@ normalize<-function(feature){
 ```
 
 ```{r}
-nor<-normalize <-encoded %>% 
+nor<-encoded %>% 
   mutate_all(normalize)
 ```
 
